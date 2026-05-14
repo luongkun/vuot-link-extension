@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <title>Vượt Link — Cài đặt</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <img src="../icons/icon48.png" alt="" width="32" height="32" />
+        <div>
+          <h1>Vượt Link</h1>
+          <p class="muted">Cài đặt nâng cao</p>
+        </div>
+      </header>
+
+      <section>
+        <h2>Hoạt động</h2>
+        <label class="row">
+          <input type="checkbox" id="enabled" />
+          <span>Bật extension</span>
+        </label>
+        <label class="row">
+          <input type="checkbox" id="autoRedirect" />
+          <span>Tự động chuyển hướng khi vượt thành công</span>
+        </label>
+        <label class="row">
+          <input type="checkbox" id="showNotifications" />
+          <span>Hiện thông báo desktop khi vượt xong</span>
+        </label>
+      </section>
+
+      <section>
+        <h2>bypass.vip Premium (tuỳ chọn)</h2>
+        <p class="muted">
+          API miễn phí của bypass.vip đã ngừng hoạt động. Extension dùng
+          <a href="https://fastforwardteam.github.io/serverdocs/" target="_blank" rel="noopener">Crowd-Bypass</a>
+          làm nguồn chính (miễn phí). Nếu bạn có API key bypass.vip Premium thì
+          dán vào đây để dùng làm fallback.
+        </p>
+        <label class="row stack">
+          <span>API key</span>
+          <input id="bypassVipKey" type="password" placeholder="bv_..." />
+        </label>
+      </section>
+
+      <section>
+        <h2>Tắt cho từng trang</h2>
+        <p class="muted">
+          Bỏ tick những trang bạn không muốn tự động vượt (vẫn có thể vượt thủ
+          công qua popup).
+        </p>
+        <div id="domain-groups"></div>
+      </section>
+
+      <section>
+        <h2>Cache</h2>
+        <p class="muted">Kết quả được cache trong phiên trình duyệt (24 giờ).</p>
+        <button id="clear-cache" type="button">Xoá cache</button>
+        <button id="clear-history" type="button">Xoá lịch sử</button>
+      </section>
+
+      <section>
+        <h2>Nguồn dữ liệu</h2>
+        <ul class="src-list">
+          <li>
+            <a href="https://fastforwardteam.github.io/serverdocs/" target="_blank">Crowd-Bypass</a>
+            (cộng đồng FastForwardTeam) — miễn phí, không cần API key.
+          </li>
+          <li>
+            <a href="https://bypass.vip" target="_blank">bypass.vip</a> Premium —
+            có phí, dùng khi muốn vượt link không có trong Crowd-Bypass.
+          </li>
+          <li>HEAD redirect — extension tự gọi với các shortener đơn giản.</li>
+        </ul>
+      </section>
+
+      <div id="save-toast" class="toast hidden">Đã lưu.</div>
+    </main>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

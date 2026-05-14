@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <title>Vượt Link</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <img src="../icons/icon32.png" alt="" width="24" height="24" />
+      <h1>Vượt Link</h1>
+      <label class="switch" title="Bật / tắt tự động vượt">
+        <input id="toggle-enabled" type="checkbox" />
+        <span class="slider"></span>
+      </label>
+    </header>
+
+    <section class="manual">
+      <label for="manual-input">Dán link cần vượt</label>
+      <div class="row">
+        <input id="manual-input" type="url" placeholder="https://..." spellcheck="false" />
+        <button id="manual-go" type="button">Vượt</button>
+      </div>
+      <div id="manual-result" class="result hidden"></div>
+    </section>
+
+    <section class="status">
+      <div class="status-row">
+        <span class="status-label">Trang hiện tại</span>
+        <span id="current-status" class="status-value">—</span>
+      </div>
+    </section>
+
+    <section class="history">
+      <div class="row spread">
+        <h2>Lịch sử</h2>
+        <button id="clear-history" type="button" class="link">Xoá</button>
+      </div>
+      <ul id="history-list"></ul>
+    </section>
+
+    <footer>
+      <a href="../options/options.html" target="_blank" id="open-options">Cài đặt nâng cao</a>
+    </footer>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

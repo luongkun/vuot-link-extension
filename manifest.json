@@ -1,0 +1,87 @@
+{
+  "manifest_version": 3,
+  "name": "Vượt Link - Auto Link Bypasser",
+  "short_name": "Vượt Link",
+  "version": "0.1.0",
+  "description": "Tự động vượt qua các trang rút gọn link / quảng cáo (Linkvertise, ouo.io, link1s, yeumoney, bit.ly, t.co, v.v.) bằng API Crowd-Bypass / bypass.vip.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Vượt Link",
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": [
+    "storage",
+    "webNavigation",
+    "tabs",
+    "alarms",
+    "notifications",
+    "contextMenus"
+  ],
+  "host_permissions": [
+    "https://crowd.fastforward.team/*",
+    "https://api.bypass.vip/*",
+    "https://api.bypass.city/*",
+    "https://bypass.city/*",
+    "<all_urls>"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://link1s.com/*",
+        "*://*.link1s.com/*",
+        "*://link1s.net/*",
+        "*://link4m.com/*",
+        "*://yeumoney.com/*",
+        "*://*.yeumoney.com/*",
+        "*://kiemtienol.com/*",
+        "*://kiemtienmod.net/*",
+        "*://megaurl.in/*",
+        "*://*.megaurl.in/*",
+        "*://ouo.io/*",
+        "*://ouo.press/*",
+        "*://shorte.st/*",
+        "*://sh.st/*",
+        "*://adf.ly/*",
+        "*://*.adf.ly/*",
+        "*://adfoc.us/*",
+        "*://exe.io/*",
+        "*://exey.io/*",
+        "*://exee.io/*",
+        "*://owolinks.com/*",
+        "*://droplink.co/*",
+        "*://linkvertise.com/*",
+        "*://*.linkvertise.com/*",
+        "*://work.ink/*",
+        "*://*.work.ink/*"
+      ],
+      "js": ["content/redirect.js"],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/*.png"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
