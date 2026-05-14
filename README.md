@@ -69,6 +69,21 @@ Mở bất kỳ link rút gọn nào trong danh sách hỗ trợ. Extension sẽ
    với URL gốc.
 - Phải chuột trên trang → **"Vượt link của trang hiện tại"**.
 
+### Khi không vượt được
+
+Nếu popup báo lỗi (ví dụ "Cộng đồng Crowd-Bypass chưa có dữ liệu cho link
+này"), bấm **"Mở trang gốc"** trong popup. Extension sẽ tự:
+
+- Auto-click các nút "Get Link / Tiếp tục / Bỏ qua / Lấy link / Vào link"
+   khi đã đủ thời gian chờ.
+- Quét trang để tìm URL đích trong các thẻ `<a>`, `<input hidden>`,
+   `data-url`, `data-link`, hoặc text URL trên trang.
+- **Đóng góp lại** URL đích cho Crowd-Bypass khi tìm thấy → lần sau bạn
+   (và mọi user khác) sẽ vượt được luôn ở bước Crowd-Bypass.
+
+> Linkvertise và Work.ink dùng captcha nên auto-click bị tắt — cần giải
+> captcha thủ công, sau đó extension vẫn tự đóng góp link đích.
+
 ## Danh sách hỗ trợ
 
 Xem trong trang **Cài đặt nâng cao** (mở từ popup → "Cài đặt nâng cao") hoặc

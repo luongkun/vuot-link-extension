@@ -30,9 +30,35 @@ function fmtTs(ts) {
   }
 }
 
+// Translate the raw error code from lib/bypass.js into a user-friendly Vietnamese message.
+function translateError(code) {
+  if (!code) return "Không vượt được link này.";
+  const map = {
+    "not-in-db":
+      "Cộng đồng Crowd-Bypass chưa có dữ liệu cho link này. Hãy thử mở trang gốc — extension sẽ tự đóng góp lại lần sau.",
+    "verify-required":
+      "Cộng đồng yêu cầu xác minh thủ công cho link này. Hãy mở trang gốc và làm theo bước trên trang.",
+    "free-api-disabled":
+      "API miễn phí của bypass.vip đã ngừng. Hãy thử mở trang gốc, hoặc dùng API key Premium trong Cài đặt.",
+    "unsupported-domain": "Tên miền này chưa được hỗ trợ.",
+    "not-a-known-shortener": "Tên miền này chưa được hỗ trợ.",
+    "bad-url": "URL không hợp lệ.",
+    "empty-response": "Máy chủ trả về rỗng.",
+    timeout: "Hết thời gian chờ. Kiểm tra mạng rồi thử lại.",
+    "all-strategies-failed": "Tất cả phương pháp đều thất bại. Hãy mở trang gốc.",
+    "hops-to-ad-link":
+      "Link nhảy sang một trang quảng cáo trung gian — extension đang xử lý tiếp.",
+  };
+  if (map[code]) return map[code];
+  if (code.startsWith("http-")) return `Máy chủ trả về lỗi (${code.replace("http-", "HTTP ")}).`;
+  if (code.startsWith("no-redirect")) return "Link không chuyển hướng.";
+  return code;
+}
+
 function renderResult(box, result, inputUrl) {
   box.classList.remove("hidden", "ok", "fail");
   box.innerHTML = "";
+
   if (result.ok && result.url) {
     box.classList.add("ok");
     const a = document.createElement("a");
@@ -43,7 +69,9 @@ function renderResult(box, result, inputUrl) {
     const open = document.createElement("button");
     open.textContent = "Mở";
     open.style.marginLeft = "8px";
-    open.addEventListener("click", () => chrome.tabs.create({ url: result.url, active: true }));
+    open.addEventListener("click", () =>
+      chrome.tabs.create({ url: result.url, active: true })
+    );
     const copy = document.createElement("button");
     copy.textContent = "Copy";
     copy.className = "link";
@@ -56,15 +84,56 @@ function renderResult(box, result, inputUrl) {
     meta.className = "meta";
     meta.textContent = `qua ${result.source}`;
     box.appendChild(meta);
-  } else {
-    box.classList.add("fail");
-    const reason = result.error || "không vượt được";
-    box.textContent = `Lỗi: ${reason}`;
+    return;
+  }
+
+  // Failure path.
+  box.classList.add("fail");
+  const msgEl = document.createElement("div");
+  msgEl.textContent = translateError(result.error);
+  box.appendChild(msgEl);
+
+  if (inputUrl) {
     const meta = document.createElement("div");
     meta.className = "meta";
-    meta.textContent = inputUrl ? `URL: ${inputUrl}` : "";
+    meta.textContent = `URL: ${inputUrl}`;
     box.appendChild(meta);
   }
+
+  // Action buttons: "Mở trang gốc" + "Thử lại" — both useful when bypass fails.
+  const actions = document.createElement("div");
+  actions.className = "actions";
+
+  if (inputUrl) {
+    const openOriginal = document.createElement("button");
+    openOriginal.type = "button";
+    openOriginal.textContent = "Mở trang gốc";
+    openOriginal.title =
+      "Mở link rút gọn trong tab mới. Content script sẽ cố tự lấy link đích và đóng góp về Crowd-Bypass.";
+    openOriginal.addEventListener("click", () =>
+      chrome.tabs.create({ url: inputUrl, active: true })
+    );
+    actions.appendChild(openOriginal);
+
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.className = "link";
+    retry.textContent = "Thử lại";
+    retry.addEventListener("click", async () => {
+      manualResult.textContent = "Đang vượt lại…";
+      manualResult.classList.remove("ok", "fail");
+      const res = await msg("bypass-manual", { url: inputUrl, force: true });
+      if (!res.ok) {
+        renderResult(manualResult, { ok: false, error: res.error || "lỗi" }, inputUrl);
+      } else {
+        renderResult(manualResult, res.result, inputUrl);
+        refreshSettings();
+      }
+    });
+    actions.appendChild(retry);
+  }
+
+  box.appendChild(actions);
 }
 
 async function refreshSettings() {
@@ -90,7 +159,9 @@ function renderHistory(history) {
     inEl.textContent = h.input;
     const outEl = document.createElement("div");
     outEl.className = "out" + (h.ok ? "" : " fail");
-    outEl.textContent = h.ok ? `→ ${h.output}` : `× ${h.error || "không vượt được"}`;
+    outEl.textContent = h.ok
+      ? `→ ${h.output}`
+      : `× ${translateError(h.error)}`;
     const srcEl = document.createElement("div");
     srcEl.className = "src";
     srcEl.textContent = `${h.source || "?"} · ${fmtTs(h.ts)}`;

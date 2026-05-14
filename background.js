@@ -18,7 +18,10 @@ const DEFAULT_SETTINGS = {
   historyLimit: 50,
 };
 
-const CACHE_TTL_MS = 1000 * 60 * 60 * 24; // 24h
+const CACHE_TTL_MS = 1000 * 60 * 60 * 24; // 24h for successful resolves
+const NEGATIVE_CACHE_TTL_MS = 1000 * 60 * 5; // 5 min for failures, so the user can retry
+                                              // soon (e.g. after the Crowd-Bypass DB is updated)
+                                              // but we don't hammer the API on every navigation.
 const IN_FLIGHT = new Map(); // url -> Promise
 
 async function getSettings() {
@@ -45,7 +48,9 @@ async function readCache(url) {
     const key = `cache:${url}`;
     const got = await chrome.storage.session.get(key);
     const hit = got[key];
-    if (hit && Date.now() - hit.ts < CACHE_TTL_MS) return hit;
+    if (!hit) return null;
+    const ttl = hit.ok ? CACHE_TTL_MS : NEGATIVE_CACHE_TTL_MS;
+    if (Date.now() - hit.ts < ttl) return hit;
   } catch {
     // session storage not available in some contexts; ignore.
   }
