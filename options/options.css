@@ -24,6 +24,7 @@ header {
 header h1 { margin: 0; font-size: 18px; }
 header p { margin: 0; }
 .muted { color: #64748b; font-size: 13px; }
+.muted.block, small.block { display: block; margin-top: 2px; line-height: 1.4; }
 
 section { margin: 24px 0; }
 section h2 {

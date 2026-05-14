@@ -5,7 +5,7 @@ phổ biến (Linkvertise, ouo.io, link1s, yeumoney, megaurl, bit.ly, t.co, …)
 
 ## Cách hoạt động
 
-Extension kết hợp 3 chiến lược, ưu tiên theo thứ tự:
+Extension kết hợp 4 chiến lược, ưu tiên theo thứ tự:
 
 1. **HEAD redirect** — với shortener đơn giản (bit.ly, t.co, tinyurl, …)
    extension trực tiếp gửi `fetch` với `redirect: 'manual'` và đọc header
@@ -18,10 +18,17 @@ Extension kết hợp 3 chiến lược, ưu tiên theo thứ tự:
 3. **bypass.vip Premium** (tuỳ chọn) — nếu bạn có API key bypass.vip Premium,
    dán vào trang **Cài đặt nâng cao** thì extension sẽ dùng làm fallback khi
    Crowd-Bypass không có dữ liệu.
+4. **Headless self-bypass** (mặc định **bật**) — khi cả 3 chiến lược API
+   trên đều không có dữ liệu, extension mở link trong một **cửa sổ thu nhỏ
+   ở góc màn hình**, content script tự bấm các nút "Lấy link / Tiếp tục /
+   Bỏ qua / Get Link / Continue", theo dõi navigation, lấy URL gốc khi tab
+   rời khỏi domain shortener, rồi tự đóng cửa sổ và trả URL về cho bạn —
+   đồng thời đóng góp lại cho Crowd-Bypass để lần sau ai cũng vượt nhanh.
 
 > 📢 API miễn phí của bypass.vip [đã ngừng hoạt động](https://api.bypass.vip/)
 > tháng 3/2025. Extension đã sẵn sàng dùng bypass.vip Premium nếu bạn mua key,
-> còn mặc định chạy hoàn toàn bằng Crowd-Bypass + HEAD-follow (miễn phí).
+> còn mặc định chạy hoàn toàn bằng Crowd-Bypass + HEAD-follow + Headless
+> self-bypass (miễn phí).
 
 ## Tính năng
 
@@ -71,18 +78,19 @@ Mở bất kỳ link rút gọn nào trong danh sách hỗ trợ. Extension sẽ
 
 ### Khi không vượt được
 
-Nếu popup báo lỗi (ví dụ "Cộng đồng Crowd-Bypass chưa có dữ liệu cho link
-này"), bấm **"Mở trang gốc"** trong popup. Extension sẽ tự:
+Nếu cả Crowd-Bypass lẫn bypass.vip đều không có dữ liệu, extension mặc
+định kích hoạt chế độ **Headless self-bypass**: mở link trong một cửa sổ
+thu nhỏ (minimized) ở góc màn hình, content script tự bấm "Lấy link /
+Tiếp tục / Bỏ qua", theo dõi navigation, lấy URL gốc và đóng cửa sổ.
+Bạn chỉ cần đợi tối đa ~60 giây.
 
-- Auto-click các nút "Get Link / Tiếp tục / Bỏ qua / Lấy link / Vào link"
-   khi đã đủ thời gian chờ.
-- Quét trang để tìm URL đích trong các thẻ `<a>`, `<input hidden>`,
-   `data-url`, `data-link`, hoặc text URL trên trang.
-- **Đóng góp lại** URL đích cho Crowd-Bypass khi tìm thấy → lần sau bạn
-   (và mọi user khác) sẽ vượt được luôn ở bước Crowd-Bypass.
+Nếu trang yêu cầu captcha (Linkvertise, Work.ink, một số biến thể có
+hCaptcha) thì auto-click sẽ bị dừng — bấm **"Mở trang gốc"** trong popup
+để thao tác thủ công, content script vẫn sẽ tự đóng góp URL đích cho
+Crowd-Bypass khi bạn giải xong captcha.
 
-> Linkvertise và Work.ink dùng captcha nên auto-click bị tắt — cần giải
-> captcha thủ công, sau đó extension vẫn tự đóng góp link đích.
+Có thể tắt Headless self-bypass trong **Cài đặt nâng cao** nếu bạn không
+muốn extension tự mở cửa sổ.
 
 ## Danh sách hỗ trợ
 

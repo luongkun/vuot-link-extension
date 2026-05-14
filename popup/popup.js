@@ -48,10 +48,16 @@ function translateError(code) {
     "all-strategies-failed": "Tất cả phương pháp đều thất bại. Hãy mở trang gốc.",
     "hops-to-ad-link":
       "Link nhảy sang một trang quảng cáo trung gian — extension đang xử lý tiếp.",
+    "headless-timeout":
+      "Đã thử mở cửa sổ ẩn 60 giây nhưng chưa lấy được URL gốc. Có thể trang yêu cầu captcha.",
+    "window-closed": "Cửa sổ ẩn bị đóng trước khi vượt xong.",
+    "no-tab": "Không tạo được cửa sổ ẩn để vượt.",
   };
   if (map[code]) return map[code];
   if (code.startsWith("http-")) return `Máy chủ trả về lỗi (${code.replace("http-", "HTTP ")}).`;
   if (code.startsWith("no-redirect")) return "Link không chuyển hướng.";
+  if (code.startsWith("cannot-open-window"))
+    return "Trình duyệt từ chối tạo cửa sổ ẩn. Hãy thử thao tác thủ công.";
   return code;
 }
 
@@ -120,7 +126,7 @@ function renderResult(box, result, inputUrl) {
     retry.className = "link";
     retry.textContent = "Thử lại";
     retry.addEventListener("click", async () => {
-      manualResult.textContent = "Đang vượt lại…";
+      manualResult.textContent = "Đang vượt lại… (có thể mất 30–60 giây)";
       manualResult.classList.remove("ok", "fail");
       const res = await msg("bypass-manual", { url: inputUrl, force: true });
       if (!res.ok) {
@@ -202,7 +208,7 @@ manualGo.addEventListener("click", async () => {
   manualGo.disabled = true;
   manualResult.classList.remove("hidden");
   manualResult.classList.remove("ok", "fail");
-  manualResult.textContent = "Đang vượt…";
+  manualResult.textContent = "Đang vượt… (có thể mất 30–60 giây nếu phải mở cửa sổ ẩn)";
   const res = await msg("bypass-manual", { url, force: false });
   manualGo.disabled = false;
   if (!res.ok) {

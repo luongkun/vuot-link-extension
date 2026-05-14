@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Vượt Link - Auto Link Bypasser",
   "short_name": "Vượt Link",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Tự động vượt qua các trang rút gọn link / quảng cáo (Linkvertise, ouo.io, link1s, yeumoney, bit.ly, t.co, v.v.) bằng API Crowd-Bypass / bypass.vip.",
   "icons": {
     "16": "icons/icon16.png",
