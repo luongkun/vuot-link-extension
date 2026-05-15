@@ -145,7 +145,7 @@
 
   // Hosts that often appear as "skip-ad" landing pages but are NOT the
   // user's destination.
-  const KNOWN_INTERSTITIAL_HOST_RE = /(linkvertise|work\.ink|adfoc|adf\.ly|ouo\.|shorte\.st|sh\.st|exee?\.io|exee\.app|exey\.io|owolinks|droplink|cuty\.io|cety\.io|boost\.ink|loot-link|lootdest|lootlabs|paster\.|sub2unlock|sub4unlock|rekonise|mboost|social-unlock|link1s|link4m|yeumoney|kiemtien|megaurl)/i;
+  const KNOWN_INTERSTITIAL_HOST_RE = /(linkvertise|work\.ink|adfoc|adf\.ly|ay\.gy|q\.gs|j\.gs|ouo\.|shorte\.st|sh\.st|fc\.lc|atglinks|adshnk|adshrink|atominik|shrtfly|shrtco|shrinke|shrinkearn|shrinkforearn|cutwin|cutpaid|bc\.vc|mitly|1ink|direct-link|linkpoi|linkrex|linkpays|linkfly|earnow|payskip|short-jambo|xpshort|gplinks|gpl\.li|droplink|adrinolinks|earn4link|easysky|veganab|shrtflys|ezylinks|za\.gl|za\.uy|zee\.gl|shink|exee?\.io|exee\.app|exey\.io|owolinks|cuty\.io|cety\.io|boost\.ink|boost\.gg|letsboost|loot-link|loot-links|lootlink|lootdest|lootlabs|paster\.|sub2unlock|sub4unlock|subscribetounlock|rekonise|mboost|social-unlock|link1s|link4m|yeumoney|kiemtien|megaurl|1link\.vn|safelinking|safelinku|safelink\.id|urluss|urlcero|atajurl)/i;
 
   // -------- Helpers --------
 
@@ -370,9 +370,9 @@
       },
     },
 
-    // ---- link1s / link4m / link1s.net — token + Get Link button ----
+    // ---- link1s / link4m / link1s.net / 1link.vn — token + Get Link button ----
     {
-      match: /(^|\.)link1s\.com$|(^|\.)link1s\.net$|(^|\.)link4m\.com$/,
+      match: /(^|\.)link1s\.com$|(^|\.)link1s\.net$|(^|\.)link1s\.app$|(^|\.)link4m\.com$|(^|\.)link4m\.net$|(^|\.)1link\.vn$/,
       run: () => {
         // These render <a id="link-view" href="..."> after countdown, OR
         // submit a form to /links/go with a token and respond with the URL.
@@ -455,6 +455,79 @@
             document.querySelector(".get-link[href^='http']");
           if (a && a.href) {
             reportDestination(a.href, { trusted: true, source: "exeio-solver" });
+            return true;
+          }
+          return false;
+        };
+        const id = setInterval(() => {
+          if (reported || tryRead()) clearInterval(id);
+        }, 1000);
+        setTimeout(() => clearInterval(id), 60_000);
+      },
+    },
+
+    // ---- GPLinks / Adrinolinks / similar Indian shorteners ----
+    // These usually have a captcha, then reveal a "Get Link" anchor with the
+    // real href.
+    {
+      match: /(^|\.)gplinks\.in$|(^|\.)gplinks\.co$|(^|\.)gpl\.li$|(^|\.)adrinolinks\.com$|(^|\.)adrinolinks\.in$|(^|\.)earn4link\.in$|(^|\.)easysky\.in$|(^|\.)shrinke\.me$|(^|\.)shrinkearn\.com$|(^|\.)shrinkforearn\.in$|(^|\.)shrtfly\.com$|(^|\.)shrtflys\.com$|(^|\.)cutwin\.com$|(^|\.)cutpaid\.com$|(^|\.)atglinks\.com$|(^|\.)veganab\.co$|(^|\.)ezylinks\.com$/,
+      run: () => {
+        const tryRead = () => {
+          const a =
+            document.querySelector("a.btn-captcha[href^='http']") ||
+            document.querySelector("a#invisibleCaptchaShortlink[href^='http']") ||
+            document.querySelector("a#getlink[href^='http']") ||
+            document.querySelector("a.get-link[href^='http']") ||
+            document.querySelector("#download a[href^='http']") ||
+            document.querySelector(".final-link a[href^='http']");
+          if (a && a.href) {
+            reportDestination(a.href, { trusted: true, source: "gplinks-solver" });
+            return true;
+          }
+          return false;
+        };
+        const id = setInterval(() => {
+          if (reported || tryRead()) clearInterval(id);
+        }, 1000);
+        setTimeout(() => clearInterval(id), 60_000);
+      },
+    },
+
+    // ---- Loot family (lootdest / lootlabs / loot-link / loot-links / lootlink) ----
+    {
+      match: /(^|\.)lootdest\.(com|org|info)$|(^|\.)lootlabs\.gg$|(^|\.)loot-link\.com$|(^|\.)loot-links\.com$|(^|\.)lootlink\.org$/,
+      run: () => {
+        const tryRead = () => {
+          const a =
+            document.querySelector("a#continue-button[href^='http']") ||
+            document.querySelector("a#unlock[href^='http']") ||
+            document.querySelector("a[href*='dest=']") ||
+            document.querySelector(".final-link a[href^='http']");
+          if (a && a.href) {
+            reportDestination(a.href, { trusted: true, source: "loot-solver" });
+            return true;
+          }
+          return false;
+        };
+        const id = setInterval(() => {
+          if (reported || tryRead()) clearInterval(id);
+        }, 1000);
+        setTimeout(() => clearInterval(id), 60_000);
+      },
+    },
+
+    // ---- SafeLinking / SafeLinkU / SafeLink.id ----
+    {
+      match: /(^|\.)safelinking\.(com|net)$|(^|\.)safelinku\.net$|(^|\.)safelink\.id$/,
+      run: () => {
+        const tryRead = () => {
+          const a =
+            document.querySelector("a#go-to-link[href^='http']") ||
+            document.querySelector("a.go-to-link[href^='http']") ||
+            document.querySelector("#go-to a[href^='http']") ||
+            document.querySelector(".final-link a[href^='http']");
+          if (a && a.href) {
+            reportDestination(a.href, { trusted: true, source: "safelink-solver" });
             return true;
           }
           return false;
