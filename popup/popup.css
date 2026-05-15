@@ -105,6 +105,7 @@ button.link:hover { color: #1565c0; }
 .status-value { font-weight: 500; }
 .status-value.supported { color: #059669; }
 .status-value.unsupported { color: #94a3b8; }
+.status-value.pending { color: #d97706; }
 
 .history h2 {
   margin: 0;

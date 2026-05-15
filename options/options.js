@@ -14,6 +14,7 @@ const $ = (sel) => document.querySelector(sel);
 const fields = {
   enabled: $("#enabled"),
   autoRedirect: $("#autoRedirect"),
+  redirectFromContent: $("#redirectFromContent"),
   showNotifications: $("#showNotifications"),
   bypassVipKey: $("#bypassVipKey"),
 };
@@ -93,11 +94,13 @@ async function bootstrap() {
   if (!s.ok) return;
   fields.enabled.checked = !!s.settings.enabled;
   fields.autoRedirect.checked = !!s.settings.autoRedirect;
+  fields.redirectFromContent.checked = s.settings.redirectFromContent !== false;
   fields.showNotifications.checked = !!s.settings.showNotifications;
   fields.bypassVipKey.value = s.settings.bypassVipKey || "";
 
   bindAutoSave(fields.enabled, "enabled");
   bindAutoSave(fields.autoRedirect, "autoRedirect");
+  bindAutoSave(fields.redirectFromContent, "redirectFromContent");
   bindAutoSave(fields.showNotifications, "showNotifications");
   bindAutoSave(fields.bypassVipKey, "bypassVipKey", "string");
 
