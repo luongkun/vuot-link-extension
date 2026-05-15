@@ -2,8 +2,11 @@
 // - Watches navigations on supported shortener / ad-link domains.
 // - Resolves the destination via lib/bypass.js.
 // - Redirects the tab to the destination automatically when found.
-// - Otherwise falls back to the normal page (and content/redirect.js may help).
-// - Handles popup/options messages for manual bypass, settings, and logs.
+// - When the API can't resolve, lets the page load and listens for the
+//   content script to find the destination on-page; then auto-navigates
+//   the tab and contributes back to Crowd-Bypass.
+// - Handles popup/options messages for manual bypass, settings, logs,
+//   and live tab status.
 
 import { lookupDomain, listSupported } from "./lib/domains.js";
 import { resolveLink, contributeToCrowd } from "./lib/bypass.js";
@@ -12,6 +15,11 @@ const DEFAULT_SETTINGS = {
   enabled: true,
   bypassVipKey: "",
   autoRedirect: true,
+  // When the content script discovers the destination on the page, should
+  // we automatically navigate the tab to it? Default: yes — this is the
+  // main fix that makes ad-link sites actually "bypass" instead of just
+  // logging the URL.
+  redirectFromContent: true,
   showNotifications: false,
   disabledDomains: [],
   history: [], // {ts, input, output, source, ok, error}
@@ -19,10 +27,26 @@ const DEFAULT_SETTINGS = {
 };
 
 const CACHE_TTL_MS = 1000 * 60 * 60 * 24; // 24h for successful resolves
-const NEGATIVE_CACHE_TTL_MS = 1000 * 60 * 5; // 5 min for failures, so the user can retry
-                                              // soon (e.g. after the Crowd-Bypass DB is updated)
-                                              // but we don't hammer the API on every navigation.
+const NEGATIVE_CACHE_TTL_MS = 1000 * 60 * 5; // 5 min for failures
 const IN_FLIGHT = new Map(); // url -> Promise
+
+// Per-tab state for live status display in the popup.
+//   { stage: "resolving" | "waiting" | "found" | "failed" | "redirected",
+//     inputUrl, outputUrl?, source?, error?, updatedAt }
+const TAB_STATE = new Map();
+
+function setTabState(tabId, patch) {
+  if (typeof tabId !== "number" || tabId < 0) return;
+  const prev = TAB_STATE.get(tabId) || {};
+  const next = { ...prev, ...patch, updatedAt: Date.now() };
+  TAB_STATE.set(tabId, next);
+}
+
+function clearTabState(tabId) {
+  TAB_STATE.delete(tabId);
+}
+
+chrome.tabs.onRemoved.addListener((tabId) => clearTabState(tabId));
 
 async function getSettings() {
   const stored = await chrome.storage.local.get(Object.keys(DEFAULT_SETTINGS));
@@ -32,7 +56,6 @@ async function getSettings() {
 async function setSettings(patch) {
   const current = await getSettings();
   const next = { ...current, ...patch };
-  // Don't persist transient defaults if nothing changed.
   await chrome.storage.local.set(patch);
   return next;
 }
@@ -139,22 +162,44 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
   if (isDomainDisabled(settings.disabledDomains, url)) return;
 
   setBadge(details.tabId, "…", "#ff9800");
+  setTabState(details.tabId, {
+    stage: "resolving",
+    inputUrl: url,
+    outputUrl: null,
+    source: null,
+    error: null,
+  });
 
   const result = await maybeResolve(url);
   if (result.ok && result.url && result.url !== url) {
     try {
       await chrome.tabs.update(details.tabId, { url: result.url });
       setBadge(details.tabId, "✓", "#43a047");
+      setTabState(details.tabId, {
+        stage: "redirected",
+        inputUrl: url,
+        outputUrl: result.url,
+        source: result.source,
+      });
       notifyResolved(url, result);
       setTimeout(() => setBadge(details.tabId, "").catch(() => {}), 4000);
     } catch (e) {
       console.warn("[Vượt Link] tabs.update failed", e);
       setBadge(details.tabId, "!", "#e53935");
+      setTabState(details.tabId, {
+        stage: "failed",
+        inputUrl: url,
+        error: String((e && e.message) || e),
+      });
     }
   } else {
     // Not found via API. Content script will try to handle it on the page.
     setBadge(details.tabId, "?", "#9e9e9e");
-    setTimeout(() => setBadge(details.tabId, "").catch(() => {}), 4000);
+    setTabState(details.tabId, {
+      stage: "waiting",
+      inputUrl: url,
+      error: result.error || null,
+    });
   }
 });
 
@@ -181,19 +226,98 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         sendResponse({ ok: true });
       } else if (msg && msg.type === "supported-domains") {
         sendResponse({ ok: true, groups: listSupported() });
+      } else if (msg && msg.type === "get-tab-status") {
+        // Popup queries this for the active tab.
+        const tabId = msg.tabId;
+        const state = (typeof tabId === "number" && TAB_STATE.get(tabId)) || null;
+        sendResponse({ ok: true, state });
+      } else if (msg && msg.type === "content-progress") {
+        // Heartbeat from content script — just update the tab state so the
+        // popup can show "đang chờ trang load…" instead of stale "?".
+        const tabId = sender && sender.tab && sender.tab.id;
+        if (typeof tabId === "number") {
+          const prev = TAB_STATE.get(tabId);
+          // Don't downgrade a "redirected"/"found" state back to waiting.
+          if (!prev || prev.stage === "resolving" || prev.stage === "waiting") {
+            setTabState(tabId, {
+              stage: "waiting",
+              inputUrl: (sender.tab && sender.tab.url) || (prev && prev.inputUrl),
+              contentStage: msg.stage || "waiting",
+            });
+          }
+        }
+        sendResponse({ ok: true });
       } else if (msg && msg.type === "content-found-destination") {
-        // content script discovered the destination on the page.
-        // Cache it + contribute to crowd.
-        const original = sender && sender.tab && sender.tab.url;
+        // Content script discovered the destination on the page.
+        // Cache it, contribute to Crowd-Bypass, and (if enabled) navigate
+        // the tab to the destination so the user actually escapes the
+        // ad-link site.
+        const tab = sender && sender.tab;
+        const tabId = tab && tab.id;
+        const original = tab && tab.url;
+        const settings = await getSettings();
+
         if (original && msg.url && lookupDomain(original)) {
-          await writeCache(original, { ok: true, url: msg.url, source: "content-script" });
+          await writeCache(original, {
+            ok: true,
+            url: msg.url,
+            source: "content-script",
+          });
           await appendHistory({
             input: original,
             output: msg.url,
-            source: "content-script",
+            source: `content-script (${msg.via || "scan"})`,
             ok: true,
           });
           contributeToCrowd(original, msg.url).catch(() => {});
+
+          if (typeof tabId === "number") {
+            setTabState(tabId, {
+              stage: "found",
+              inputUrl: original,
+              outputUrl: msg.url,
+              source: `content-script (${msg.via || "scan"})`,
+            });
+            setBadge(tabId, "✓", "#43a047");
+            setTimeout(() => setBadge(tabId, "").catch(() => {}), 4000);
+          }
+
+          // The actual navigation. Guard against pathological cases:
+          //   - same URL we're already on
+          //   - destination is itself a known shortener pointing back here
+          //   - extension or auto-redirect disabled
+          //   - this specific domain is in the user's disabled list
+          //   - tab no longer exists
+          const stillSameDomain = lookupDomain(msg.url);
+          const isLoop =
+            msg.url === original ||
+            (stillSameDomain && stillSameDomain.match === lookupDomain(original).match);
+
+          if (
+            settings.enabled &&
+            settings.autoRedirect &&
+            settings.redirectFromContent &&
+            !isDomainDisabled(settings.disabledDomains, original) &&
+            !isLoop &&
+            typeof tabId === "number"
+          ) {
+            try {
+              await chrome.tabs.update(tabId, { url: msg.url });
+              setTabState(tabId, {
+                stage: "redirected",
+                inputUrl: original,
+                outputUrl: msg.url,
+                source: `content-script (${msg.via || "scan"})`,
+              });
+              notifyResolved(original, {
+                ok: true,
+                url: msg.url,
+                source: "content-script",
+              });
+            } catch (e) {
+              console.warn("[Vượt Link] redirectFromContent failed", e);
+            }
+          }
         }
         sendResponse({ ok: true });
       } else {

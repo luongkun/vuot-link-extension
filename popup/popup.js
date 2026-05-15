@@ -177,9 +177,45 @@ async function refreshCurrentTabStatus() {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab || !tab.url) {
       currentStatus.textContent = "—";
+      currentStatus.className = "status-value";
       return;
     }
     const entry = lookupDomain(tab.url);
+
+    // Try to get live status from the background SW.
+    let live = null;
+    try {
+      const r = await msg("get-tab-status", { tabId: tab.id });
+      if (r && r.ok) live = r.state;
+    } catch {
+      // ignore
+    }
+
+    if (live && live.inputUrl === tab.url) {
+      const stage = live.stage;
+      if (stage === "redirected" || stage === "found") {
+        currentStatus.textContent = `Đã vượt qua ${live.source || "?"}`;
+        currentStatus.className = "status-value supported";
+        return;
+      }
+      if (stage === "resolving") {
+        currentStatus.textContent = "Đang gọi API…";
+        currentStatus.className = "status-value pending";
+        return;
+      }
+      if (stage === "waiting") {
+        currentStatus.textContent =
+          "Đang chờ trang hiện link đích… (giữ tab mở)";
+        currentStatus.className = "status-value pending";
+        return;
+      }
+      if (stage === "failed") {
+        currentStatus.textContent = `Lỗi: ${translateError(live.error) || live.error || "?"}`;
+        currentStatus.className = "status-value unsupported";
+        return;
+      }
+    }
+
     if (entry) {
       currentStatus.textContent = `${entry.label} · ${entry.strategy}`;
       currentStatus.className = "status-value supported";
@@ -225,3 +261,7 @@ clearHistory.addEventListener("click", async () => {
 // Bootstrap.
 refreshSettings();
 refreshCurrentTabStatus();
+// Re-poll the live status every 1.5s while the popup is open so the user
+// can watch "đang chờ trang load…" → "đã vượt".
+const _statusTimer = setInterval(refreshCurrentTabStatus, 1500);
+window.addEventListener("unload", () => clearInterval(_statusTimer));
