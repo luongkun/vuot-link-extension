@@ -52,6 +52,8 @@
         "*://*.link1s.net/*",
         "*://link4m.com/*",
         "*://*.link4m.com/*",
+        "*://link4m.net/*",
+        "*://*.link4m.net/*",
         "*://yeumoney.com/*",
         "*://*.yeumoney.com/*",
         "*://yeumoney.net/*",

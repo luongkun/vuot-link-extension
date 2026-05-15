@@ -372,7 +372,7 @@
 
     // ---- link1s / link4m / link1s.net — token + Get Link button ----
     {
-      match: /(^|\.)link1s\.com$|(^|\.)link1s\.net$|(^|\.)link4m\.com$/,
+      match: /(^|\.)link1s\.com$|(^|\.)link1s\.net$|(^|\.)link4m\.com$|(^|\.)link4m\.net$/,
       run: () => {
         // These render <a id="link-view" href="..."> after countdown, OR
         // submit a form to /links/go with a token and respond with the URL.
